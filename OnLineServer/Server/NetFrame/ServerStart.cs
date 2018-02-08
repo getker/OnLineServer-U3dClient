@@ -46,6 +46,7 @@ namespace NetFrame
                 token.LE = LE;
                 token.encode = encode;
                 token.decode = decode;
+                token.sendProcess = ProcessSend;
 
                 pool.Ppush(token);
             }

@@ -30,12 +30,17 @@ namespace NetFrame
         public Encode encode;
         public Decode decode;
 
+        public delegate void SendProcess(SocketAsyncEventArgs e);
+
+        public SendProcess sendProcess;
 
         //缓存存储编码解码的数据
         List<byte> cache = new List<byte>();
 
         //读取状态机，是否正在读取
         private bool isReading = false;
+        private bool isWriting = false;
+        Queue<byte[]> writeQueue = new Queue<byte[]>();
 
         public UserToken()
         {
@@ -49,6 +54,8 @@ namespace NetFrame
         //客户端接收消息的方法，因为每一个客户端接收到的消息是不能混淆的，
         public void Receive(byte[] buff)
         {
+            //将消息写入缓存
+            cache.AddRange(buff);
             if (!isReading)//如果不是在读取中
             {
                 isReading = true;
@@ -88,16 +95,53 @@ namespace NetFrame
             OnData();
         }
 
+        public void Write(byte[] value)
+        {
+            if (conn == null)
+            {
+                //此连接已经断开
+                return;
+            }
+            writeQueue.Enqueue(value);
+            if (!isWriting)
+            {
+                isWriting = true;
+                OnWrite();
+            }
+        }
+
+        public void OnWrite()
+        {
+            //判断发送消息队列是否有消息
+            if (writeQueue.Count == 0) { isWriting = false;return; }
+            //取出第一条待发消息
+            byte[] buff = writeQueue.Dequeue();
+            //设置消息发送异步对象的发送数据缓存区数据
+            sendSAEA.SetBuffer(buff, 0, buff.Length);
+            //开启异步发送
+            bool result = conn.SendAsync(sendSAEA);
+            //是否挂起
+            if (!result)
+            {
+                sendProcess(sendSAEA);
+            }
+        }
+
         //发送完成的方法
         public void Writed()
         {
-
+            //与OnData尾递归同理
+            OnWrite();
         }
 
         public void Close()
         {
             try
             {
+                writeQueue.Clear();
+                cache.Clear();
+                isReading = false;
+                isWriting = false;
                 conn.Shutdown(SocketShutdown.Both);
                 conn.Close();
                 conn = null;
