@@ -34,6 +34,12 @@ namespace NetFrame
 
         public SendProcess sendProcess;
 
+        public delegate void CloseProcess(UserToken token,string error);
+
+        public CloseProcess closeProcess;
+
+        public AbsHandlerCenter center;
+
         //缓存存储编码解码的数据
         List<byte> cache = new List<byte>();
 
@@ -90,7 +96,7 @@ namespace NetFrame
             object message = decode(buff);
 
             //TODO 通知应用层 有消息到达
-
+            center.MessageReceive(this, message);
             //尾递归 防止在消息处理过程中 有其他消息到达而没有经过处理
             OnData();
         }
@@ -100,6 +106,7 @@ namespace NetFrame
             if (conn == null)
             {
                 //此连接已经断开
+                closeProcess(this, "调用已经断开的连接");
                 return;
             }
             writeQueue.Enqueue(value);

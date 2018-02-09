@@ -1,0 +1,6 @@
+E:\FirstGit\OnLineServer\Server\NetFrame\bin\Debug\NetFrame.dll
+E:\FirstGit\OnLineServer\Server\NetFrame\bin\Debug\NetFrame.pdb
+E:\FirstGit\OnLineServer\Server\NetFrame\obj\Debug\NetFrame.csprojResolveAssemblyReference.cache
+E:\FirstGit\OnLineServer\Server\NetFrame\obj\Debug\NetFrame.csproj.CoreCompileInputs.cache
+E:\FirstGit\OnLineServer\Server\NetFrame\obj\Debug\NetFrame.dll
+E:\FirstGit\OnLineServer\Server\NetFrame\obj\Debug\NetFrame.pdb

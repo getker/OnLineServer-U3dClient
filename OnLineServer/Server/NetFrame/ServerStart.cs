@@ -22,6 +22,11 @@ namespace NetFrame
         public Decode decode;
 
         /// <summary>
+        /// 消息处理中心，由外部应用传入
+        /// </summary>
+        public AbsHandlerCenter center;
+
+        /// <summary>
         /// 初始化通信监听
         /// </summary>
         /// <param name="max">最大连接数</param>
@@ -31,11 +36,20 @@ namespace NetFrame
             server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             //设定服务器最大连接人数
             maxClient = max;
+            
+        }
+
+        /// <summary>
+        /// 运行
+        /// </summary>
+        /// <param name="port">端口</param>
+        public void Start(int port)
+        {
             //创建连接池
-            pool = new UserTokenPool(max);
+            pool = new UserTokenPool(maxClient);
             //连接信号量--这个的作用不是很清楚
-            acceprClients = new Semaphore(max, max);
-            for (int i = 0; i < max; i++)//把max最大的连接数初始化出来
+            acceprClients = new Semaphore(maxClient, maxClient);
+            for (int i = 0; i < maxClient; i++)//把max最大的连接数初始化出来
             {
                 UserToken token = new UserToken();
 
@@ -47,17 +61,10 @@ namespace NetFrame
                 token.encode = encode;
                 token.decode = decode;
                 token.sendProcess = ProcessSend;
-
+                token.closeProcess = ClientClosse;
+                token.center = center;
                 pool.Ppush(token);
             }
-        }
-
-        /// <summary>
-        /// 运行
-        /// </summary>
-        /// <param name="port">端口</param>
-        public void Start(int port)
-        {
             //监听当前服务器网卡所有可用IP地址的port端口
             //外网IP 内网IP192.168.x.x 本机IP127.0.0.1
             server.Bind(new IPEndPoint(IPAddress.Any, port));
@@ -98,7 +105,7 @@ namespace NetFrame
             UserToken token = pool.Ppop();
             token.conn = e.AcceptSocket;
             //TODO 通知应用层 有客户端连接
-
+            center.ClientConnect(token);
             //开启消息到达监听
             StartReceive(token);
             //释放当前异步对象 其中的e.AcceptSocket = null;可以释放
@@ -189,6 +196,7 @@ namespace NetFrame
                 lock (token)
                 {
                     //通知应用层面 客户端端口连接
+                    center.ClientClose(token, error);
                     token.Close();
                     //先塞回去，再加一个信号量，供其它用户使用
                     pool.Ppush(token);
